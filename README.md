@@ -1,0 +1,3 @@
+- Test db methods.`
+- `~~create `GET /posts/new` resource.`~~
+- Signup form template should render errors on current/same signup page

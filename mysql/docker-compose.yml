@@ -1,0 +1,19 @@
+version: '3.3'
+
+services:
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'blog'
+      MYSQL_USER: 'bart'
+      MYSQL_PASSWORD: 'password123'
+      MYSQL_ROOT_PASSWORD: 'password123'
+    ports:
+      - '3309:3306'
+    volumes:
+      - rust_blog:/var/lib/mysql
+      - /var/run/mysqld:/var/run/mysqld
+
+volumes:
+  rust_blog:
