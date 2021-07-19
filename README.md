@@ -13,4 +13,5 @@ TODO:
 - ~~Issue #02: `GET /users/{id``}` returns password field when it shouldn't~~
 - Create user session
 - Create `authenticate` helper to verify that new user doesn't already exist
-- Create handler for `GET /login``` 
+- Create handler for `Get /login` 
+- Create custom error templates
