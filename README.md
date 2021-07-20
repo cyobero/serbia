@@ -4,6 +4,7 @@ SRBIA (Simple Rust Blog in Action)
 TODO:
 ===============================================================================
 - ~~Test db methods~~.`
+>>>>>>> 89dfb9a (handle url resource GET /usrs/{id})
 - `~~create `GET /posts/new` resource.`~~
 - ~~Signup form template should render errors on current/same signup page~~
 - Create login page
@@ -22,3 +23,7 @@ TODO:
 - Create handler for resource `GET /sessions/{id}`
 - Create handler for resource `POST /sessions/{id}`
 - Implement password verification for `Auth::authenticate`
+=======
+- Issue #01: index page isn't being loaded. Error: "App is not configured"
+- ~~Create handler for `GET /users/{id}`~~
+- Issue #02: `GET /users/{id``}` returns password field when it shouldn't
