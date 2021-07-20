@@ -19,3 +19,6 @@ TODO:
 - ~~Issue #03: Redirecting to `/index` not working (no connection?)~~ 
 - ~~Create SQL table `sessions` .~~
 - ~~Create `db::create_user_session`  which creates a new user session.~~ 
+- Create handler for resource `GET /sessions/{id}`
+- Create handler for resource `POST /sessions/{id}`
+- Implement password verification for `Auth::authenticate`
