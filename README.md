@@ -18,4 +18,4 @@ TODO:
 - Create UML diagram
 - ~~Issue #03: Redirecting to `/index` not working (no connection?)~~ 
 - ~~Create SQL table `sessions` .~~
-- Create `db::login`  which creates a new user session.
+- ~~Create `db::create_user_session`  which creates a new user session.~~ 
