@@ -26,3 +26,4 @@ TODO:
 - ~~Issue #01: index page isn't being loaded. Error: "App is not configured"~~
 - ~~Create handler for `GET /users/{id}`~~
 - ~~Issue #02: `GET /users/{id``}` returns password field when it shouldn't~~ 
+- Create handler for `logout` functionality
