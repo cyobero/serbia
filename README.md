@@ -4,7 +4,7 @@ SRBIA (Simple Rust Blog in Action)
 TODO:
 ===============================================================================
 - ~~Test db methods~~.`
->>>>>>> 89dfb9a (handle url resource GET /usrs/{id})
+- handle url resource GET /usrs/{id}
 - `~~create `GET /posts/new` resource.`~~
 - ~~Signup form template should render errors on current/same signup page~~
 - Create login page
