@@ -28,3 +28,4 @@ TODO:
 - ~~Issue #02: `GET /users/{id``}` returns password field when it shouldn't~~ 
 - Create handler for `logout` functionality
 - Create App state to store data
+- Issue #04: Login page keeps returning "UserNotFound" error despite user existing in db
