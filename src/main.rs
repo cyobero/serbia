@@ -16,7 +16,7 @@ use std::env;
 pub type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
 
 pub struct AppState {
-    db: DbPool,
+    db: web::Data<DbPool>,
 }
 
 // Handler for index page
@@ -28,10 +28,7 @@ pub async fn index(
 ) -> Result<HttpResponse, actix_web::Error> {
     println!("{:?}", &request);
     let data = json!({
-        "user": format!("{:?}", session.get::<UserResponse>("user")),
-        "request": format!("{:?}", request),
-        "cookie": format!("{:?}", session.get::<String>("cookie"))
-    });
+        "user": format!("{:?}", session.get::<UserResponse>("user")), "request": format!("{:?}", request), "cookie": format!("{:?}", session.get::<String>("cookie")) });
     let body = hb.render("index", &data).unwrap();
     Ok(HttpResponse::Ok().body(&body))
 }

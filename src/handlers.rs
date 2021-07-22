@@ -51,8 +51,10 @@ impl Auth<NewUserInput, MysqlConnection, AuthError> for Form<NewUserInput> {
 pub struct UserResponse {
     #[sql_type = "Integer"]
     id: i32,
+
     #[sql_type = "Varchar"]
     username: String,
+
     #[sql_type = "Timestamp"]
     created_at: chrono::NaiveDateTime,
 }

@@ -4,9 +4,9 @@ use super::errors::FormError;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-pub trait Auth<I, C, E = FormError>
+pub trait Auth<T, C, E = FormError>
 where
-    I: Serialize,
+    T: Serialize,
     C: Connection,
 {
     type Output;
