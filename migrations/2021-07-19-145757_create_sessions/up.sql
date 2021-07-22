@@ -1,10 +1,8 @@
 -- Your SQL goes here
 CREATE TABLE sessions (
-    id INT NOT NULL AUTO_INCREMENT,
+    session_key VARCHAR(255) NOT NULL,
     user_id INT NOT NULL,
-    begin TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    end TIMESTAMP NULL,
-    actix_session VARCHAR(255) NULL,
-    PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (session_key),
+    FOREIGN KEY (user_id) REFERENCES users (id)
 );

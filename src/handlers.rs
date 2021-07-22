@@ -208,7 +208,7 @@ pub async fn login(
 
     // User found
     if let Ok(usr) = auth {
-        let res = web::block(move || create_user_session(&conn, &usr.id, "testtoken69"))
+        let res = web::block(move || create_user_session(&conn, "testtoken69", usr.id))
             .await
             .map(|_| {
                 Ok(HttpResponse::Ok()

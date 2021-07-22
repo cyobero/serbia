@@ -25,34 +25,25 @@ pub struct NewUser<'nu> {
 
 #[derive(Debug, Insertable)]
 #[table_name = "sessions"]
-pub struct NewSession {
+pub struct NewUserSession<'ns> {
+    pub session_key: &'ns str,
     pub user_id: i32,
-    pub token: String,
 }
 
-impl NewSession {
-    pub fn new(user_id: i32, token: String) -> Self {
-        NewSession { user_id, token }
-    }
-}
-
-impl Default for NewSession {
-    fn default() -> NewSession {
-        NewSession {
-            user_id: -1,
-            token: "Default Session".to_owned(),
+impl<'ns> NewUserSession<'ns> {
+    pub fn new(session_key: &'ns str, user_id: i32) -> Self {
+        NewUserSession {
+            session_key: &session_key,
+            user_id,
         }
     }
 }
 
-impl Session<String> for NewSession {
-    type Sess = NewSession;
-    fn set_session_token(mut self, token: String) -> Self {
-        self.token = token;
-        self
-    }
+#[derive(Debug, Serialize, Queryable, QueryableByName)]
+pub struct UserSession {
+    #[sql_type = "Varchar"]
+    session_key: String,
 
-    fn get_session_token(&self) -> &String {
-        &self.token
-    }
+    #[sql_type = "Integer"]
+    user_id: i32,
 }

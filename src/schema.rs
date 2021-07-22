@@ -1,10 +1,8 @@
 table! {
-    sessions (id) {
-        id -> Integer,
+    sessions (session_key) {
+        session_key -> Varchar,
         user_id -> Integer,
-        begin -> Timestamp,
-        end -> Nullable<Timestamp>,
-        token -> Nullable<Varchar>,
+        created_at -> Timestamp,
     }
 }
 
@@ -19,4 +17,7 @@ table! {
 
 joinable!(sessions -> users (user_id));
 
-allow_tables_to_appear_in_same_query!(sessions, users,);
+allow_tables_to_appear_in_same_query!(
+    sessions,
+    users,
+);

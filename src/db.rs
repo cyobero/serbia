@@ -1,6 +1,6 @@
 //! Module for database interactions
 //!
-use super::models::{NewSession, NewUser, User};
+use super::models::{NewUser, NewUserSession, User};
 use super::schema::{sessions, users};
 use diesel::{mysql::MysqlConnection, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use std::env;
@@ -95,10 +95,10 @@ pub fn remove_user_by_username(
 ///     assert_eq!(new_session, Ok(1));
 pub fn create_user_session(
     conn: &MysqlConnection,
-    user_id_: &i32,
-    session_token: &str,
+    session_key: &str,
+    user_id: i32,
 ) -> Result<usize, DieselError> {
-    let sess = NewSession::new(*user_id_, session_token.to_owned());
+    let sess = NewUserSession::new(session_key, user_id);
     let res = diesel::insert_into(sessions::table)
         .values(&sess)
         .execute(conn)?;
@@ -113,9 +113,12 @@ mod tests {
     #[test]
     fn session_created() {
         use super::create_user_session;
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+        let key: u32 = rng.gen();
         let conn = establish_connection().unwrap();
-        let should_fail = create_user_session(&conn, &43, "test-session");
-        assert!(should_fail.is_err());
+        let should_succeed = create_user_session(&conn, &key.to_string(), 13);
+        assert!(should_succeed.is_ok());
     }
 
     #[test]

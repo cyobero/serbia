@@ -493,6 +493,7 @@ dependencies = [
  "failure",
  "handlebars",
  "r2d2",
+ "rand 0.8.4",
  "reqwest",
  "serde",
  "serde_json",
