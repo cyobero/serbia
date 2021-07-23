@@ -1,4 +1,4 @@
-use blog::db::{establish_connection, get_all_users};
+use blog_user::db::{establish_connection, get_all_users};
 
 fn main() {
     let conn = establish_connection().expect("Failed to establish connection.");

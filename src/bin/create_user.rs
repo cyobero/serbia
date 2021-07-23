@@ -1,5 +1,5 @@
-use blog::db::{create_user, establish_connection};
-use blog::models::NewUser;
+use blog_user::db::{create_user, establish_connection};
+use blog_user::models::NewUser;
 use clap::{App, Arg};
 
 fn main() {

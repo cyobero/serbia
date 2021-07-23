@@ -5,8 +5,9 @@ use super::errors::{
 };
 
 use super::models::NewUser;
-use super::{db::*, DbPool};
+use super::{db::*, models::NewUserSession, AuthSession, DbPool};
 
+use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::Session;
 use actix_web::{
     self, get,
@@ -20,8 +21,9 @@ use diesel::mysql::MysqlConnection;
 use diesel::sql_types::Varchar;
 use diesel::{sql_query, sql_types::*, RunQueryDsl};
 use handlebars::Handlebars;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
-
 #[derive(Serialize, Deserialize)]
 pub struct NewUserInput {
     pub username: String,
@@ -46,7 +48,7 @@ impl Auth<NewUserInput, MysqlConnection, AuthError> for Form<NewUserInput> {
 }
 
 /// Response for `GET /usrs/{id}`
-#[derive(Debug, Serialize, Deserialize, QueryableByName)]
+#[derive(Debug, Serialize, Deserialize, QueryableByName, Clone)]
 #[table_name = "users"]
 pub struct UserResponse {
     #[sql_type = "Integer"]
@@ -206,24 +208,35 @@ pub async fn login(
         .expect("Could not establish connection from pool.");
 
     let auth = form.authenticate(&conn);
+    // randomly generate session id
+    let session_id: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(32)
+        .map(char::from)
+        .collect();
 
     // User found
     if let Ok(usr) = auth {
-        let res = web::block(move || create_user_session(&conn, "testtoken69", usr.id))
-            .await
-            .map(|_| {
-                Ok(HttpResponse::Ok()
-                    .content_type("text/html; charset=utf-8")
-                    .body(include_str!("../templates/login_success.html")))
-            })
-            .map_err(|error| {
-                let data = json!({ "error": format!("{:?}", error) });
-                let body = hb.render("login", &data).unwrap();
+        let res = web::block(move || {
+            create_user_session(
+                &conn,
+                &NewUserSession::new(&session_id.clone(), &usr.id.clone()),
+            )
+        })
+        .await
+        .map(|_| {
+            Ok(HttpResponse::Ok()
+                .content_type("text/html; charset=utf-8")
+                .body(include_str!("../templates/login_success.html")))
+        })
+        .map_err(|error| {
+            let data = json!({ "error": format!("{:?}", error) });
+            let body = hb.render("login", &data).unwrap();
 
-                HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-                    .content_type("text/html; charset=utf-8")
-                    .body(&body)
-            })?;
+            HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+                .content_type("text/html; charset=utf-8")
+                .body(&body)
+        })?;
         res
     } else {
         let data = json!({ "error": format!("{:?}", UserNotFound) });

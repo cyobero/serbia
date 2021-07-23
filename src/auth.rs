@@ -13,13 +13,19 @@ where
     fn authenticate(self, conn: &C) -> Result<Self::Output, E>;
 }
 
-pub trait Validate<I, C, E = FormError>
+/// Trait for validating form
+pub trait Validate<T, C, E = FormError>
 where
-    I: Serialize,
+    T: Serialize,
     C: Connection,
 {
     type Output;
-    fn validate(self) -> Result<Self::Output, E>;
+
+    /// Validate form (ie ensure fields are filled, password is long enough, etc)
+    fn validate(&self) -> Result<Self::Output, E>;
+
+    /// Boolean that returns `true` if `validate()` has already been called and returned `Ok`
+    fn is_valid() -> bool;
 }
 
 pub trait Session<T> {

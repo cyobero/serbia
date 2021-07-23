@@ -5,7 +5,7 @@ extern crate serde_json;
 
 use actix_session::{CookieSession, Session};
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer};
-use blog::handlers::{self, UserResponse};
+use blog_user::{handlers, AuthSession};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use dotenv::dotenv;
@@ -28,7 +28,8 @@ pub async fn index(
 ) -> Result<HttpResponse, actix_web::Error> {
     println!("{:?}", &request);
     let data = json!({
-        "user": format!("{:?}", session.get::<UserResponse>("user")), "request": format!("{:?}", request), "cookie": format!("{:?}", session.get::<String>("cookie")) });
+        "session_id": session.get::<u32>("session-id").unwrap()
+    });
     let body = hb.render("index", &data).unwrap();
     Ok(HttpResponse::Ok().body(&body))
 }

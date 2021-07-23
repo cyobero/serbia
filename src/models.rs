@@ -23,17 +23,17 @@ pub struct NewUser<'nu> {
     pub password: &'nu str,
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Insertable, Serialize)]
 #[table_name = "sessions"]
 pub struct NewUserSession<'ns> {
     pub session_key: &'ns str,
-    pub user_id: i32,
+    pub user_id: &'ns i32,
 }
 
 impl<'ns> NewUserSession<'ns> {
-    pub fn new(session_key: &'ns str, user_id: i32) -> Self {
+    pub fn new(session_key: &'ns str, user_id: &'ns i32) -> Self {
         NewUserSession {
-            session_key: &session_key,
+            session_key,
             user_id,
         }
     }
