@@ -142,7 +142,6 @@ pub async fn signup(
             })
             .await
             .map(|_| {
-                sess.set("session-active", true)?;
                 Ok(HttpResponse::Ok()
                     .content_type("text/html; charset=utf-8")
                     .body(include_str!("../templates/signup_success.html")))

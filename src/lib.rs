@@ -10,6 +10,7 @@ extern crate failure;
 pub mod auth;
 pub mod db;
 pub mod errors;
+pub mod forms;
 pub mod handlers;
 pub mod models;
 pub mod schema;
