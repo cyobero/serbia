@@ -5,7 +5,7 @@ extern crate serde_json;
 
 use actix_session::{CookieSession, Session};
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer};
-use blog_user::{handlers, AuthSession};
+use blog_user::handlers;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use dotenv::dotenv;
@@ -19,7 +19,7 @@ pub struct AppState {
     db: web::Data<DbPool>,
 }
 
-// Handler for index page
+/// Handler for index page
 #[get("/")]
 pub async fn index(
     hb: web::Data<Handlebars<'_>>,
@@ -27,10 +27,14 @@ pub async fn index(
     session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     println!("{:?}", &request);
+    let cookie = request.headers().get("cookie").unwrap();
     let data = json!({
-        "session_id": session.get::<u32>("session-id").unwrap()
+        "session_id": session.get::<u32>("session-id").unwrap(),
+        "cookie": format!("{:?}", &cookie),
     });
-    let body = hb.render("index", &data).unwrap();
+    let body = hb
+        .render_template(include_str!("../templates/index.html"), &data)
+        .unwrap();
     Ok(HttpResponse::Ok().body(&body))
 }
 
@@ -48,13 +52,7 @@ async fn main() -> std::io::Result<()> {
     // For template rendering
     let mut handlebars = Handlebars::new();
     handlebars
-        .register_template_string("signup", include_str!("../templates/signup.html"))
-        .unwrap();
-    handlebars
-        .register_template_string("index", include_str!("../templates/index.html"))
-        .unwrap();
-    handlebars
-        .register_template_string("login", include_str!("../templates/login.html"))
+        .register_templates_directory(".html", "../templates/")
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
 

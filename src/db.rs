@@ -50,10 +50,7 @@ pub fn get_user_by_id(conn: &MysqlConnection, id_: i32) -> Result<User, DieselEr
 ///     let query_user = String::from("stewiedewie69");
 ///     let res = get_user_by_username(&conn, query_user).unwrap();
 ///     assert_eq!(res.username, "stewiedewie69");
-pub fn get_user_by_username(
-    conn: &MysqlConnection,
-    username_: String,
-) -> Result<User, DieselError> {
+pub fn get_user_by_username(conn: &MysqlConnection, username_: &str) -> Result<User, DieselError> {
     let res = users::table
         .filter(users::username.eq(username_))
         .get_result(conn)?;
@@ -105,6 +102,14 @@ pub fn create_user_session(
     Ok(res)
 }
 
+/// End current user session
+pub fn end_user_session(
+    conn: &MysqlConnection,
+    session_key: &str,
+) -> Result<usize, std::io::Error> {
+    unimplemented!()
+}
+
 #[cfg(test)]
 mod tests {
     use super::establish_connection;
@@ -150,7 +155,7 @@ mod tests {
         use super::get_user_by_username;
         let conn = establish_connection().unwrap();
         let query_user = String::from("bender3000");
-        let res = get_user_by_username(&conn, query_user).unwrap();
+        let res = get_user_by_username(&conn, &query_user).unwrap();
         assert_eq!(res.username, "bender3000");
     }
 

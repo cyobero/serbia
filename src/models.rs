@@ -1,4 +1,3 @@
-use super::auth::Session;
 use super::schema::*;
 use chrono::{NaiveDateTime, Utc};
 use diesel::{sql_types::*, Expression, Insertable};

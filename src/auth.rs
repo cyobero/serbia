@@ -1,98 +1,74 @@
-use super::diesel::Connection;
-use super::errors::FormError;
+use super::db::get_user_by_username;
+use super::errors::AuthError;
+use super::handlers::UserLogin;
+use super::handlers::UserResponse;
 
+use actix_web::web::Form;
+use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::{DateTime, Utc};
+use diesel::{Connection, MysqlConnection};
 use serde::Serialize;
 
-pub trait Auth<T, C, E = FormError>
+pub trait Auth<C = MysqlConnection>
 where
-    T: Serialize,
     C: Connection,
 {
-    type Output;
-    fn authenticate(self, conn: &C) -> Result<Self::Output, E>;
+    type User: Serialize;
+    type Error;
+
+    fn authenticate(&self, conn: &C) -> Result<Self::User, Self::Error>;
+
+    /// Check to see if input `password` matches hashed passowrd
+    fn verify_password(self, conn: &MysqlConnection) -> Result<Self::User, AuthError>;
+
+    /// Check to see if `username` already exists
+    fn verify_username(&self, conn: &MysqlConnection) -> Result<Self::User, AuthError>;
 }
 
-/// Trait for validating form
-pub trait Validate<T, C, E = FormError>
-where
-    T: Serialize,
-    C: Connection,
-{
-    type Output;
+impl Auth for UserLogin {
+    type User = UserLogin;
+    type Error = AuthError;
 
-    /// Validate form (ie ensure fields are filled, password is long enough, etc)
-    fn validate(&self) -> Result<Self::Output, E>;
-
-    /// Boolean that returns `true` if `validate()` has already been called and returned `Ok`
-    fn is_valid() -> bool;
-}
-
-pub trait Session<T> {
-    type Sess;
-    fn set_session_token(self, token: T) -> Self::Sess;
-    fn get_session_token(&self) -> &T;
-}
-
-pub struct NewUserSession {
-    pub user_id: i32,
-    pub begin: DateTime<Utc>,
-    pub actix_session: Option<String>,
-}
-
-pub struct ActixSession {
-    pub user_id: i32,
-    pub begin: DateTime<Utc>,
-    pub end: Option<DateTime<Utc>>,
-    pub actix_session: String,
-}
-
-impl ActixSession {
-    pub fn new() -> Self {
-        ActixSession::default()
+    fn authenticate(&self, conn: &MysqlConnection) -> Result<Self, AuthError> {
+        self.verify_username(conn)
+            .and_then(|u| u.verify_password(conn))
     }
 
-    /// Create new `ActixSession` by passing in a `token` `String`.
-    pub fn from_string(token: String) -> Self {
-        ActixSession {
-            user_id: -1,
-            begin: Utc::now(),
-            end: None,
-            actix_session: token,
+    fn verify_password(self, conn: &MysqlConnection) -> Result<Self, AuthError> {
+        let usr = self.verify_username(conn)?;
+        let hashed = hash(&self.password, DEFAULT_COST).expect("Could not hash password.");
+        let valid = verify(usr.password, &hashed).unwrap();
+        if valid == true {
+            Ok(self)
+        } else {
+            Err(AuthError::InvalidPassword)
         }
     }
 
-    /// Setter method for `user_id`
-    pub fn set_user_id(mut self, id: i32) -> Self {
-        self.user_id = id;
-        self
-    }
-
-    /// Getter method for `user_id`
-    pub fn get_user_id(&self) -> Option<i32> {
-        Some(self.user_id)
+    fn verify_username(&self, conn: &MysqlConnection) -> Result<Self, AuthError> {
+        get_user_by_username(conn, &self.username)
+            .map(|u| UserLogin {
+                username: u.username,
+                password: u.password,
+            })
+            .map_err(|_| AuthError::UserNotFound)
     }
 }
 
-impl Session<String> for ActixSession {
-    type Sess = ActixSession;
-    fn set_session_token(mut self, token: String) -> Self {
-        self.actix_session = token;
-        self
-    }
+#[cfg(test)]
+mod tests {
+    use crate::db::establish_connection;
 
-    fn get_session_token(&self) -> &String {
-        &self.actix_session
-    }
-}
-
-impl Default for ActixSession {
-    fn default() -> ActixSession {
-        ActixSession {
-            user_id: -1,
-            begin: Utc::now(),
-            end: None,
-            actix_session: String::new(),
-        }
+    #[test]
+    fn user_authenticated() {
+        use super::Auth;
+        use super::UserLogin;
+        let usr = UserLogin {
+            username: "cyobero".to_owned(),
+            password: "password123".to_owned(),
+        };
+        let conn = establish_connection().unwrap();
+        let res = usr.authenticate(&conn);
+        assert!(res.is_ok());
     }
 }

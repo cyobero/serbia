@@ -33,3 +33,4 @@ TODO:
 - Refactor `Auth` and `Verify` traits (and maybe other form-related traits)
 - Create  `forms` module
 - Create session id from `rng`.
+- Add login/logout methods to `Auth` trait?

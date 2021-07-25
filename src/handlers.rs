@@ -1,4 +1,4 @@
-use super::auth::{ActixSession, Auth};
+use super::auth::Auth;
 use super::errors::{
     AuthError::{self, UserAlreadyExists, UserNotFound},
     FormError::{self, MismatchPasswords, PasswordTooShort},
@@ -7,7 +7,6 @@ use super::errors::{
 use super::models::NewUser;
 use super::{db::*, models::NewUserSession, AuthSession, DbPool};
 
-use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::Session;
 use actix_web::{
     self, get,
@@ -31,21 +30,21 @@ pub struct NewUserInput {
     pub password_confirm: String,
 }
 
-impl Auth<NewUserInput, MysqlConnection, AuthError> for Form<NewUserInput> {
-    type Output = Form<NewUserInput>;
-    fn authenticate(self, conn: &MysqlConnection) -> Result<Self, AuthError> {
-        let res = sql_query("SELECT * FROM users WHERE username=?")
-            .bind::<Varchar, _>(&self.username)
-            .execute(conn);
+//impl Auth<NewUserInput, MysqlConnection, AuthError> for Form<NewUserInput> {
+//type Output = Form<NewUserInput>;
+//fn authenticate(self, conn: &MysqlConnection) -> Result<Self, AuthError> {
+//let res = sql_query("SELECT * FROM users WHERE username=?")
+//.bind::<Varchar, _>(&self.username)
+//.execute(conn);
 
-        // If username is not already taken
-        if let Err(_) = res {
-            Ok(self)
-        } else {
-            Err(UserAlreadyExists)
-        }
-    }
-}
+//// If username is not already taken
+//if let Err(_) = res {
+//Ok(self)
+//} else {
+//Err(UserAlreadyExists)
+//}
+//}
+//}
 
 /// Response for `GET /usrs/{id}`
 #[derive(Debug, Serialize, Deserialize, QueryableByName, Clone)]
@@ -62,8 +61,8 @@ pub struct UserResponse {
 }
 
 /// Shared trait for cleaning forms
-pub trait Clean<I, E = FormError> {
-    fn clean(self) -> Result<I, E>;
+pub trait Clean<T, E = FormError> {
+    fn clean(self) -> Result<T, E>;
 }
 
 impl Clean<NewUserInput> for Form<NewUserInput> {
@@ -117,7 +116,6 @@ pub async fn retrieve_user_by_id(
 }
 
 /// Handler for resource 'POST /users'
-///
 #[post("/signup")]
 pub async fn signup(
     hb: web::Data<Handlebars<'_>>,
@@ -197,17 +195,15 @@ pub async fn login_form() -> Result<HttpResponse, actix_web::Error> {
 #[post("/login")]
 pub async fn login(
     hb: web::Data<Handlebars<'_>>,
-    req: HttpRequest,
     form: web::Form<UserLogin>,
     pool: web::Data<DbPool>,
-    session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     use super::db::create_user_session;
     let conn = pool
         .get()
         .expect("Could not establish connection from pool.");
 
-    let auth = form.authenticate(&conn);
+    //let auth = form.authenticate(&conn);
     // randomly generate session id
     let session_id: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
@@ -215,45 +211,49 @@ pub async fn login(
         .map(char::from)
         .collect();
 
+    unimplemented!()
+
     // User found
-    if let Ok(usr) = auth {
-        let res = web::block(move || {
-            create_user_session(
-                &conn,
-                &NewUserSession::new(&session_id.clone(), &usr.id.clone()),
-            )
-        })
-        .await
-        .map(|_| {
-            Ok(HttpResponse::Ok()
-                .content_type("text/html; charset=utf-8")
-                .body(include_str!("../templates/login_success.html")))
-        })
-        .map_err(|error| {
-            let data = json!({ "error": format!("{:?}", error) });
-            let body = hb.render("login", &data).unwrap();
+    //  if let Ok(usr) = auth {
+    //let res = web::block(move || {
+    //create_user_session(
+    //&conn,
+    //&NewUserSession::new(&session_id.clone(), &usr.id.clone()),
+    //)
+    //})
+    //.await
+    //.map(|_| {
+    //Ok(HttpResponse::Ok()
+    //.content_type("text/html; charset=utf-8")
+    //.body(include_str!("../templates/login_success.html")))
+    //})
+    //.map_err(|error| {
+    //let data = json!({ "error": format!("{:?}", error) });
+    //let body = hb.render("login", &data).unwrap();
 
-            HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-                .content_type("text/html; charset=utf-8")
-                .body(&body)
-        })?;
-        res
-    } else {
-        let data = json!({ "error": format!("{:?}", UserNotFound) });
-        let body = hb.render("login", &data).unwrap();
+    //HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
+    //.content_type("text/html; charset=utf-8")
+    //.body(&body)
+    //})?;
+    //res
+    //} else {
+    //let data = json!({ "error": format!("{:?}", UserNotFound) });
+    //let body = hb.render("login", &data).unwrap();
 
-        Ok(HttpResponse::build(StatusCode::NOT_FOUND)
-            .content_type("text/html; charset=utf-8")
-            .body(&body))
-    }
+    //Ok(HttpResponse::build(StatusCode::NOT_FOUND)
+    //.content_type("text/html; charset=utf-8")
+    //          .body(&body))
+    //}
 }
 
-impl Auth<UserLogin, MysqlConnection, AuthError> for Form<UserLogin> {
-    type Output = UserResponse;
-    fn authenticate(self, conn: &MysqlConnection) -> Result<UserResponse, AuthError> {
-        sql_query("SELECT * FROM users WHERE username=?")
-            .bind::<Varchar, _>(&self.username)
-            .get_result(conn)
-            .map_err(|_| UserNotFound)
-    }
-}
+//impl Auth<UserLogin, AuthError> for Form<UserLogin> {
+//type Output = UserResponse;
+//type Connection = MysqlConnection;
+//fn authenticate(self, conn: &MysqlConnection) -> Result<UserResponse, AuthError> {
+//sql_query("SELECT * FROM users WHERE username=?")
+//.bind::<Varchar, _>(&self.username)
+//.get_result(conn)
+//.map_err(|_| UserNotFound)
+//}
+
+//}
