@@ -177,7 +177,7 @@ pub async fn signup_form() -> Result<HttpResponse, actix_web::Error> {
         .body(include_str!("../templates/signup.html")))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserLogin {
     pub username: String,
     pub password: String,

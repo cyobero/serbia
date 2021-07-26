@@ -20,8 +20,19 @@ use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use handlers::UserResponse;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 pub type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
+
+pub trait User<U = String, P = String> {
+    fn set_username(self, name: U);
+
+    fn get_username(&self) -> &U;
+
+    fn set_password(self, pass: P);
+
+    fn get_password(&self) -> &P;
+}
 
 pub trait Session {
     type User: Serialize;

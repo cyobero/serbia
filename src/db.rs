@@ -117,7 +117,6 @@ mod tests {
 
     #[test]
     fn session_created() {
-        use super::create_user_session;
         use rand::Rng;
         let mut rng = rand::thread_rng();
         let key: u32 = rng.gen();
