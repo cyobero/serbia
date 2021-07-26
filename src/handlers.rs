@@ -1,4 +1,3 @@
-use super::auth::Auth;
 use super::errors::{
     AuthError::{self, UserAlreadyExists, UserNotFound},
     FormError::{self, MismatchPasswords, PasswordTooShort},
@@ -24,14 +23,14 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
-pub struct NewUserInput {
+pub struct UserSignup {
     pub username: String,
     pub password: String,
     pub password_confirm: String,
 }
 
-//impl Auth<NewUserInput, MysqlConnection, AuthError> for Form<NewUserInput> {
-//type Output = Form<NewUserInput>;
+//impl Auth<UserSignup, MysqlConnection, AuthError> for Form<UserSignup> {
+//type Output = Form<UserSignup>;
 //fn authenticate(self, conn: &MysqlConnection) -> Result<Self, AuthError> {
 //let res = sql_query("SELECT * FROM users WHERE username=?")
 //.bind::<Varchar, _>(&self.username)
@@ -65,9 +64,9 @@ pub trait Clean<T, E = FormError> {
     fn clean(self) -> Result<T, E>;
 }
 
-impl Clean<NewUserInput> for Form<NewUserInput> {
+impl Clean<UserSignup> for Form<UserSignup> {
     /// Ensure that (1) passwords match, and (2) password length is >= 8 chars long.
-    fn clean(self) -> Result<NewUserInput, FormError> {
+    fn clean(self) -> Result<UserSignup, FormError> {
         let (p1, p2) = (self.password.to_owned(), self.password_confirm.to_owned());
         if p1 == p2 {
             if p1.len() < 8 || p2.len() < 8 {
@@ -120,7 +119,7 @@ pub async fn retrieve_user_by_id(
 pub async fn signup(
     hb: web::Data<Handlebars<'_>>,
     pool: web::Data<DbPool>,
-    form: web::Form<NewUserInput>,
+    form: web::Form<UserSignup>,
     sess: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     let input = form.clean();

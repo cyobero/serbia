@@ -22,7 +22,7 @@ TODO:
 - ~~Create `db::create_user_session`  which creates a new user session.~~ 
 - Create handler for resource `GET /sessions/{user_id}`
 - Create handler for resource `POST /sessions/{user_id}`
-- Implement password verification for `Auth::authenticate`
+- ~~Implement password verification for `Auth::authenticate`~~
 - ~~Issue #01: index page isn't being loaded. Error: "App is not configured"~~
 - ~~Create handler for `GET /users/{id}`~~
 - ~~Issue #02: `GET /users/{id``}` returns password field when it shouldn't~~ 
@@ -34,3 +34,4 @@ TODO:
 - Create  `forms` module
 - Create session id from `rng`.
 - Add login/logout methods to `Auth` trait?
+- Impl `Auth` for `UserSignup

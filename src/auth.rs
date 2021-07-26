@@ -1,14 +1,11 @@
 use super::db::get_user_by_username;
 use super::errors::AuthError;
 use super::handlers::UserLogin;
-use super::handlers::UserResponse;
 use crate::User;
 
 use actix_web::web::Form;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use chrono::{DateTime, Utc};
 use diesel::{Connection, MysqlConnection};
-use serde::Serialize;
 
 pub trait Auth<C = MysqlConnection>
 where
