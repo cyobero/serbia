@@ -1,10 +1,9 @@
 use super::errors::{
     AuthError::{self, UserAlreadyExists, UserNotFound},
-    FormError::{self, MismatchPasswords, PasswordTooShort},
+    FormError::{self, FieldTooShort, MismatchPasswords},
 };
 
-use super::models::NewUser;
-use super::{db::*, models::NewUserSession, AuthSession, DbPool};
+use super::{auth::Auth, db::*, forms::Valid, models::NewUserSession, BaseUser, DbPool};
 
 use actix_session::Session;
 use actix_web::{
@@ -22,29 +21,94 @@ use handlebars::Handlebars;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-#[derive(Serialize, Deserialize)]
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserSignup {
     pub username: String,
     pub password: String,
     pub password_confirm: String,
 }
 
-//impl Auth<UserSignup, MysqlConnection, AuthError> for Form<UserSignup> {
-//type Output = Form<UserSignup>;
-//fn authenticate(self, conn: &MysqlConnection) -> Result<Self, AuthError> {
-//let res = sql_query("SELECT * FROM users WHERE username=?")
-//.bind::<Varchar, _>(&self.username)
-//.execute(conn);
+impl UserSignup {
+    /// Verify that `username` is at least 4 chars long.
+    /// Example:
+    ///     let usr = UserSignup {
+    ///         username: "headbang419".to_owned(),
+    ///         password: "password123".to_owned()
+    ///     };
+    ///     assert!(usr.clean_username().is_ok())
+    pub fn clean_username(self) -> Result<BaseUser, FormError> {
+        if self.username.len() < 4 {
+            Err(FormError::FieldTooShort(
+                "Username must be at least 4 characters long.".to_owned(),
+            ))
+        } else {
+            Ok(BaseUser {
+                username: self.username,
+                password: self.password,
+            })
+        }
+    }
 
-//// If username is not already taken
-//if let Err(_) = res {
-//Ok(self)
-//} else {
-//Err(UserAlreadyExists)
-//}
-//}
-//}
+    /// Verify that `password` is at least 8 chars long.
+    /// Example:
+    ///     let usr = UserSignup {
+    ///         username: "John".to_owned(),
+    ///         password: "foo".to_owned()
+    ///     };
+    ///     assert_eq!(usr.clean_password().is_err())
+    pub fn clean_password(self) -> Result<BaseUser, FormError> {
+        if self.password.len() < 8 || self.password_confirm.len() < 8 {
+            Err(FormError::FieldTooShort(
+                "Password must be at least 8 characters long.".to_owned(),
+            ))
+        } else {
+            Ok(BaseUser {
+                username: self.username,
+                password: self.password,
+            })
+        }
+    }
 
+    pub fn match_passwords(self) -> Result<BaseUser, FormError> {
+        if self.password == self.password_confirm {
+            Ok(BaseUser {
+                username: self.username,
+                password: self.password,
+            })
+        } else {
+            Err(FormError::MismatchPasswords)
+        }
+    }
+}
+
+impl Valid<UserSignup> for Form<UserSignup> {
+    fn get_username(&self) -> Option<&str> {
+        Some(&self.username)
+    }
+
+    fn get_password(&self) -> Option<&str> {
+        Some(&self.password)
+    }
+
+    fn get_response(&self) -> &UserSignup {
+        &self.0
+    }
+}
+
+impl Valid<UserLogin> for Form<UserLogin> {
+    fn get_username(&self) -> Option<&str> {
+        Some(&self.username)
+    }
+
+    fn get_password(&self) -> Option<&str> {
+        Some(&self.password)
+    }
+
+    fn get_response(&self) -> &UserLogin {
+        &self.0
+    }
+}
 /// Response for `GET /usrs/{id}`
 #[derive(Debug, Serialize, Deserialize, QueryableByName, Clone)]
 #[table_name = "users"]
@@ -59,8 +123,18 @@ pub struct UserResponse {
     created_at: chrono::NaiveDateTime,
 }
 
+impl Auth for UserResponse {
+    fn get_username(&self) -> Option<&String> {
+        Some(&self.username)
+    }
+
+    fn get_password(&self) -> Option<&String> {
+        None
+    }
+}
+
 /// Shared trait for cleaning forms
-pub trait Clean<T, E = FormError> {
+pub trait Clean<T: Serialize, E = FormError> {
     fn clean(self) -> Result<T, E>;
 }
 
@@ -70,7 +144,9 @@ impl Clean<UserSignup> for Form<UserSignup> {
         let (p1, p2) = (self.password.to_owned(), self.password_confirm.to_owned());
         if p1 == p2 {
             if p1.len() < 8 || p2.len() < 8 {
-                Err(PasswordTooShort)
+                Err(FieldTooShort(String::from(
+                    "Password must be at least 8 characters long.",
+                )))
             } else {
                 Ok(self.0)
             }
@@ -95,7 +171,7 @@ pub async fn retrieve_user_by_id(
         .get()
         .expect("Could not establish connection from pool.");
 
-    let res: Result<HttpResponse, actix_web::Error> = web::block(move || get_user_by_id(&conn, id))
+    web::block(move || get_user_by_id(&conn, id))
         .await
         .map(|usr| {
             Ok(HttpResponse::build(StatusCode::OK)
@@ -109,9 +185,8 @@ pub async fn retrieve_user_by_id(
         .map_err(|e| {
             eprintln!("{}", e);
             HttpResponse::InternalServerError().body(format!("{}", e))
-        })?;
-
-    res
+        })
+        .unwrap()
 }
 
 /// Handler for resource 'POST /users'
@@ -122,48 +197,49 @@ pub async fn signup(
     form: web::Form<UserSignup>,
     sess: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let input = form.clean();
     let conn = pool
         .get()
         .expect("Could not establish connection from pool.");
 
-    match input {
-        // Passwords match and meet min length requirement
-        Ok(usr) => {
-            let res = web::block(move || {
-                create_user(
-                    &conn,
-                    NewUser {
-                        username: &usr.username,
-                        password: &usr.password,
-                    },
-                )
-            })
-            .await
-            .map(|_| {
-                Ok(HttpResponse::Ok()
-                    .content_type("text/html; charset=utf-8")
-                    .body(include_str!("../templates/signup_success.html")))
-            })
-            .map_err(|e| {
-                let data = json!({ "error": format!("{}", e) });
-                let body = hb.render("signup", &data).unwrap();
-                HttpResponse::Ok()
-                    .content_type("text/html; charset=utf-8")
-                    .body(&body)
-            })?;
+    unimplemented!()
 
-            res
-        }
-        // Either passwords did not match or password is too short
-        Err(e) => {
-            let data = json!({ "error": e });
-            let body = hb.render("signup", &data).unwrap();
-            Ok(HttpResponse::Ok()
-                .content_type("text/html; charset=utf-8")
-                .body(&body))
-        }
-    }
+    //match input {
+    //// Passwords match and meet min length requirement
+    //Ok(usr) => {
+    //let res = web::block(move || {
+    //create_user(
+    //&conn,
+    //NewUser {
+    //username: &usr.username,
+    //password: &usr.password,
+    //},
+    //)
+    //})
+    //.await
+    //.map(|_| {
+    //Ok(HttpResponse::Ok()
+    //.content_type("text/html; charset=utf-8")
+    //.body(include_str!("../templates/signup_success.html")))
+    //})
+    //.map_err(|e| {
+    //let data = json!({ "error": format!("{}", e) });
+    //let body = hb.render("signup", &data).unwrap();
+    //HttpResponse::Ok(
+    //.content_type("text/html; charset=utf-8")
+    //.body(&body)
+    //})?;
+
+    //res
+    //}
+    //// Either passwords did not match or password is too short
+    //Err(e) => {
+    //let data = json!({ "error": e });
+    //let body = hb.render("signup", &data).unwrap();
+    //Ok(HttpResponse::Ok()
+    //.content_type("text/html; charset=utf-8")
+    //.body(&body))
+    //}
+    //}
 }
 
 /// Handler for resource 'GET /users/new'
@@ -197,7 +273,6 @@ pub async fn login(
     form: web::Form<UserLogin>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    use super::db::create_user_session;
     let conn = pool
         .get()
         .expect("Could not establish connection from pool.");
@@ -211,48 +286,22 @@ pub async fn login(
         .collect();
 
     unimplemented!()
-
-    // User found
-    //  if let Ok(usr) = auth {
-    //let res = web::block(move || {
-    //create_user_session(
-    //&conn,
-    //&NewUserSession::new(&session_id.clone(), &usr.id.clone()),
-    //)
-    //})
-    //.await
-    //.map(|_| {
-    //Ok(HttpResponse::Ok()
-    //.content_type("text/html; charset=utf-8")
-    //.body(include_str!("../templates/login_success.html")))
-    //})
-    //.map_err(|error| {
-    //let data = json!({ "error": format!("{:?}", error) });
-    //let body = hb.render("login", &data).unwrap();
-
-    //HttpResponse::build(StatusCode::INTERNAL_SERVER_ERROR)
-    //.content_type("text/html; charset=utf-8")
-    //.body(&body)
-    //})?;
-    //res
-    //} else {
-    //let data = json!({ "error": format!("{:?}", UserNotFound) });
-    //let body = hb.render("login", &data).unwrap();
-
-    //Ok(HttpResponse::build(StatusCode::NOT_FOUND)
-    //.content_type("text/html; charset=utf-8")
-    //          .body(&body))
-    //}
 }
 
-//impl Auth<UserLogin, AuthError> for Form<UserLogin> {
-//type Output = UserResponse;
-//type Connection = MysqlConnection;
-//fn authenticate(self, conn: &MysqlConnection) -> Result<UserResponse, AuthError> {
-//sql_query("SELECT * FROM users WHERE username=?")
-//.bind::<Varchar, _>(&self.username)
-//.get_result(conn)
-//.map_err(|_| UserNotFound)
-//}
+#[cfg(test)]
+mod tests {
+    use super::{UserLogin, UserSignup};
+    use crate::forms::Valid;
+    use actix_web::web::Form;
 
-//}
+    #[test]
+    fn user_login_is_valid() {
+        let data = UserLogin {
+            username: String::from("cyobero"),
+            password: String::from("password123"),
+        };
+
+        let form: Form<UserLogin> = Form::<UserLogin>(data);
+        assert!(form.validate().is_ok())
+    }
+}

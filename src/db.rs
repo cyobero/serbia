@@ -2,7 +2,6 @@
 //
 use super::models::{NewUser, NewUserSession, User};
 use super::schema::{sessions, users};
-use super::AuthSession;
 use diesel::{mysql::MysqlConnection, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use serde::Serialize;
 use std::env;

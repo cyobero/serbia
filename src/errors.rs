@@ -5,8 +5,8 @@ pub enum FormError {
     #[fail(display = "Passwords do not match.")]
     MismatchPasswords,
 
-    #[fail(display = "Password must be at least 8 characters long.")]
-    PasswordTooShort,
+    #[fail(display = "This field is too short.")]
+    FieldTooShort(String),
 
     #[fail(display = "Field cannot be empty.")]
     EmptyField(String),

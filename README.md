@@ -13,7 +13,7 @@ TODO:
 - ~~Create handler for `GET /users/{id}`~~
 - ~~Issue #02: `GET /users/{id``}` returns password field when it shouldn't~~
 - Create user session when user logs in / signs up
-- Create `authenticate` helper to verify that new user doesn't already exist
+- ~~Create `authenticate` helper to verify that new user doesn't already exist~~
 - ~~Create handler for `Get /login` ~~
 - Create custom error templates
 - Create UML diagram
@@ -30,8 +30,11 @@ TODO:
 - Create App state to store data
 - ~~Issue #04: Login page keeps returning "UserNotFound" error despite user existing in
     db~~ 
-- Refactor `Auth` and `Verify` traits (and maybe other form-related traits)
-- Create  `forms` module
+- ~~Refactor `Auth` and `Verify` traits (and maybe other form-related traits)~~
+- ~~Create  `forms` module~~
 - Create session id from `rng`.
 - Add login/logout methods to `Auth` trait?
-- Impl `Auth` for `UserSignup
+- Impl `Auth` for `handlers::UserSignup` 
+- Impl `User` for `models::NewUser` 
+- Unit test `Auth` trait methods
+- ~~Add `conn` as parameter to `Auth` methods~~
