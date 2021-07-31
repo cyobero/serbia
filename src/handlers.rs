@@ -30,46 +30,11 @@ pub struct UserSignup {
 }
 
 impl UserSignup {
-    /// Verify that `username` is at least 4 chars long.
+    /// Verify that confirmation password matches input password.
     /// Example:
     ///     let usr = UserSignup {
-    ///         username: "headbang419".to_owned(),
-    ///         password: "password123".to_owned()
-    ///     };
-    ///     assert!(usr.clean_username().is_ok())
-    pub fn clean_username(self) -> Result<BaseUser, FormError> {
-        if self.username.len() < 4 {
-            Err(FormError::FieldTooShort(
-                "Username must be at least 4 characters long.".to_owned(),
-            ))
-        } else {
-            Ok(BaseUser {
-                username: self.username,
-                password: self.password,
-            })
-        }
-    }
-
-    /// Verify that `password` is at least 8 chars long.
-    /// Example:
-    ///     let usr = UserSignup {
-    ///         username: "John".to_owned(),
-    ///         password: "foo".to_owned()
-    ///     };
-    ///     assert_eq!(usr.clean_password().is_err())
-    pub fn clean_password(self) -> Result<BaseUser, FormError> {
-        if self.password.len() < 8 || self.password_confirm.len() < 8 {
-            Err(FormError::FieldTooShort(
-                "Password must be at least 8 characters long.".to_owned(),
-            ))
-        } else {
-            Ok(BaseUser {
-                username: self.username,
-                password: self.password,
-            })
-        }
-    }
-
+    ///         username: "cyobero"
+    ///     }
     pub fn match_passwords(self) -> Result<BaseUser, FormError> {
         if self.password == self.password_confirm {
             Ok(BaseUser {
@@ -130,29 +95,6 @@ impl Auth for UserResponse {
 
     fn get_password(&self) -> Option<&String> {
         None
-    }
-}
-
-/// Shared trait for cleaning forms
-pub trait Clean<T: Serialize, E = FormError> {
-    fn clean(self) -> Result<T, E>;
-}
-
-impl Clean<UserSignup> for Form<UserSignup> {
-    /// Ensure that (1) passwords match, and (2) password length is >= 8 chars long.
-    fn clean(self) -> Result<UserSignup, FormError> {
-        let (p1, p2) = (self.password.to_owned(), self.password_confirm.to_owned());
-        if p1 == p2 {
-            if p1.len() < 8 || p2.len() < 8 {
-                Err(FieldTooShort(String::from(
-                    "Password must be at least 8 characters long.",
-                )))
-            } else {
-                Ok(self.0)
-            }
-        } else {
-            Err(MismatchPasswords)
-        }
     }
 }
 
