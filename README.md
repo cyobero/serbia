@@ -34,7 +34,8 @@ TODO:
 - ~~Create  `forms` module~~
 - Create session id from `rng`.
 - Add login/logout methods to `Auth` trait?
-- Impl `Auth` for `handlers::UserSignup` 
+- ~~Impl `Auth` for `handlers::UserSignup` ~~
 - Impl `User` for `models::NewUser` 
-- Unit test `Auth` trait methods
+- ~~Unit test `Auth` trait methods~~
 - ~~Add `conn` as parameter to `Auth` methods~~
+- Refactor code

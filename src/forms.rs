@@ -9,13 +9,16 @@ use serde::Serialize;
 use std::fmt::Debug;
 use std::io::Error;
 
-pub trait Valid<T: Serialize> {
+pub trait Valid<T = BaseUser>
+where
+    T: Serialize,
+{
     fn get_username(&self) -> Option<&str>;
     fn get_password(&self) -> Option<&str>;
-    fn get_response(&self) -> &T;
+    fn get_response(self) -> T;
 
     /// Returns `Ok` if `username` is not empty and `username.len()` is >= 4
-    fn clean_username(&self) -> Result<&T, FormError> {
+    fn clean_username(&self) -> Result<T, FormError> {
         match self.get_username() {
             None => Err(FormError::EmptyField("Username cannot be empty".to_owned())),
             Some(name) => {
@@ -30,7 +33,7 @@ pub trait Valid<T: Serialize> {
         }
     }
 
-    fn clean_password(&self) -> Result<&T, FormError> {
+    fn clean_password(&self) -> Result<T, FormError> {
         match self.get_password() {
             None => Err(FormError::EmptyField("Password cannot be empty".to_owned())),
             Some(name) => {
@@ -45,7 +48,7 @@ pub trait Valid<T: Serialize> {
         }
     }
 
-    fn validate(&self) -> Result<&T, FormError> {
+    fn validate(&self) -> Result<T, FormError> {
         self.clean_username().and_then(|_| self.clean_password())
     }
 }

@@ -47,7 +47,7 @@ impl UserSignup {
     }
 }
 
-impl Valid<UserSignup> for Form<UserSignup> {
+impl Valid for Form<UserSignup> {
     fn get_username(&self) -> Option<&str> {
         Some(&self.username)
     }
@@ -56,12 +56,15 @@ impl Valid<UserSignup> for Form<UserSignup> {
         Some(&self.password)
     }
 
-    fn get_response(&self) -> &UserSignup {
-        &self.0
+    fn get_response(self) -> BaseUser {
+        BaseUser {
+            username: self.username.to_owned(),
+            password: self.password.to_owned(),
+        }
     }
 }
 
-impl Valid<UserLogin> for Form<UserLogin> {
+impl Valid for Form<UserLogin> {
     fn get_username(&self) -> Option<&str> {
         Some(&self.username)
     }
@@ -70,8 +73,11 @@ impl Valid<UserLogin> for Form<UserLogin> {
         Some(&self.password)
     }
 
-    fn get_response(&self) -> &UserLogin {
-        &self.0
+    fn get_response(self) -> BaseUser {
+        BaseUser {
+            username: self.username.to_owned(),
+            password: self.password.to_owned(),
+        }
     }
 }
 /// Response for `GET /usrs/{id}`
