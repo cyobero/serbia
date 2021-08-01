@@ -24,13 +24,13 @@ pub struct NewUser<'nu> {
 
 #[derive(Debug, Insertable, Serialize)]
 #[table_name = "sessions"]
-pub struct NewUserSession<'ns> {
-    pub session_key: &'ns str,
-    pub user_id: &'ns i32,
+pub struct NewUserSession {
+    pub session_key: String,
+    pub user_id: i32,
 }
 
-impl<'ns> NewUserSession<'ns> {
-    pub fn new(session_key: &'ns str, user_id: &'ns i32) -> Self {
+impl NewUserSession {
+    pub fn new(session_key: String, user_id: i32) -> Self {
         NewUserSession {
             session_key,
             user_id,

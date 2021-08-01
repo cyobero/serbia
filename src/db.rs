@@ -1,7 +1,7 @@
 //! Module for database interactions
 
 use super::auth::Auth;
-use super::models::{NewUser, User};
+use super::models::{NewUser, NewUserSession, User};
 use super::schema::{sessions, users};
 use diesel::{mysql::MysqlConnection, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
 use std::env;
@@ -88,9 +88,9 @@ pub fn remove_user_by_username(
 ///     let token = String::from("test-token");
 ///     let new_session = create_user_session(&conn, user_id_:42, session_token: token);
 ///     assert_eq!(new_session, Ok(1));
-pub fn create_user_session<U: Auth>(
+pub fn create_user_session(
     conn: &MysqlConnection,
-    session: &U,
+    session: &NewUserSession,
 ) -> Result<usize, DieselError> {
     let res = diesel::insert_into(sessions::table)
         .values(session)

@@ -44,6 +44,10 @@ impl BaseUser {
     pub fn new() -> Self {
         BaseUser::default()
     }
+
+    pub fn get_id(&self) -> i32 {
+        self.id.unwrap()
+    }
 }
 
 impl Default for BaseUser {

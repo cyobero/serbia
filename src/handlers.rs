@@ -1,10 +1,7 @@
-use super::errors::{
-    AuthError::{self, UserAlreadyExists, UserNotFound},
-    FormError::{self, FieldTooShort, MismatchPasswords},
-};
-
 use super::auth::Auth;
+use super::errors::FormError;
 use super::forms::Valid;
+use super::models::NewUserSession;
 use super::{db::*, BaseUser, DbPool};
 
 use actix_session::Session;
@@ -13,7 +10,7 @@ use actix_web::{
     http::StatusCode,
     post,
     web::{self, Form},
-    HttpRequest, HttpResponse,
+    HttpResponse,
 };
 
 use diesel::mysql::MysqlConnection;
@@ -32,8 +29,7 @@ pub struct UserSignup {
 }
 
 impl UserSignup {
-    /// Verify that confirmation password matches input password.
-    /// Example:
+    /// Verify that confirmation password matches input password.  Example:
     ///     let usr = UserSignup {
     ///         username: "cyobero"
     ///     }
@@ -193,15 +189,29 @@ pub async fn login(
         // Form is valid
         Ok(usr) => match usr.authenticate(&conn) {
             Ok(u) => {
-                let _session_id: String = rand::thread_rng()
+                let session_id: String = rand::thread_rng()
                     .sample_iter(&Alphanumeric)
                     .take(32)
                     .map(char::from)
                     .collect();
 
-                Ok(HttpResponse::Ok()
-                    .content_type("text/html; charset=utf-8")
-                    .body(include_str!("../templates/login_success.html")))
+                let sess = NewUserSession::new(session_id, u.get_id());
+
+                web::block(move || create_user_session(&conn, &sess))
+                    .await
+                    .map(|_| {
+                        Ok(HttpResponse::Ok()
+                            .content_type("text/html; charset=utf-8")
+                            .body(include_str!("../templates/login_success.html")))
+                    })
+                    .map_err(|_| {
+                        let data = json!({ "error": "whoops: blocking error" });
+                        let body = hb.render("login", &data).unwrap();
+                        HttpResponse::InternalServerError()
+                            .content_type("text/html; charset=utf-8")
+                            .body(&body)
+                    })
+                    .unwrap()
             }
             Err(e) => {
                 let data = json!({ "error": e });

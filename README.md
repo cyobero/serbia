@@ -33,13 +33,8 @@ TODO:
 - ~~Refactor `Auth` and `Verify` traits (and maybe other form-related traits)~~
 - ~~Create  `forms` module~~
 - Create session id from `rng`.
-<<<<<<< HEAD
 - Add login/logout methods to `Auth` trait
 - ~~Impl `Auth` for `handlers::UserSignup` ~~
-=======
-- Add login/logout methods to `Auth` trait?
-- Impl `Auth` for `handlers::UserSignup` 
->>>>>>> parent of 44ea70c (modify README)
 - Impl `User` for `models::NewUser` 
-- Unit test `Auth` trait methods
+- ~~Unit test `Auth` trait methods~~
 - ~~Add `conn` as parameter to `Auth` methods~~
