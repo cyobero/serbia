@@ -3,7 +3,9 @@ use super::errors::{
     FormError::{self, FieldTooShort, MismatchPasswords},
 };
 
-use super::{auth::Auth, db::*, forms::Valid, BaseUser, DbPool};
+use super::auth::Auth;
+use super::forms::Valid;
+use super::{db::*, BaseUser, DbPool};
 
 use actix_session::Session;
 use actix_web::{
@@ -48,7 +50,7 @@ impl UserSignup {
     }
 }
 
-impl Valid for Form<UserSignup> {
+impl Valid<UserSignup> for Form<UserSignup> {
     fn get_username(&self) -> Option<&str> {
         Some(&self.username)
     }
@@ -57,16 +59,12 @@ impl Valid for Form<UserSignup> {
         Some(&self.password)
     }
 
-    fn get_response(&self) -> BaseUser {
-        BaseUser {
-            id: None,
-            username: self.username.to_owned(),
-            password: self.password.to_owned(),
-        }
+    fn get_response(&self) -> &UserSignup {
+        &self.0
     }
 }
 
-impl Valid for Form<UserLogin> {
+impl Valid<UserLogin> for Form<UserLogin> {
     fn get_username(&self) -> Option<&str> {
         Some(&self.username)
     }
@@ -75,12 +73,8 @@ impl Valid for Form<UserLogin> {
         Some(&self.password)
     }
 
-    fn get_response(&self) -> BaseUser {
-        BaseUser {
-            id: None,
-            username: self.username.to_owned(),
-            password: self.password.to_owned(),
-        }
+    fn get_response(&self) -> &UserLogin {
+        &self.0
     }
 }
 /// Response for `GET /usrs/{id}`
@@ -153,44 +147,6 @@ pub async fn signup(
         .expect("Could not establish connection from pool.");
 
     unimplemented!()
-
-    //match input {
-    //// Passwords match and meet min length requirement
-    //Ok(usr) => {
-    //let res = web::block(move || {
-    //create_user(
-    //&conn,
-    //NewUser {
-    //username: &usr.username,
-    //password: &usr.password,
-    //},
-    //)
-    //})
-    //.await
-    //.map(|_| {
-    //Ok(HttpResponse::Ok()
-    //.content_type("text/html; charset=utf-8")
-    //.body(include_str!("../templates/signup_success.html")))
-    //})
-    //.map_err(|e| {
-    //let data = json!({ "error": format!("{}", e) });
-    //let body = hb.render("signup", &data).unwrap();
-    //HttpResponse::Ok(
-    //.content_type("text/html; charset=utf-8")
-    //.body(&body)
-    //})?;
-
-    //res
-    //}
-    //// Either passwords did not match or password is too short
-    //Err(e) => {
-    //let data = json!({ "error": e });
-    //let body = hb.render("signup", &data).unwrap();
-    //Ok(HttpResponse::Ok()
-    //.content_type("text/html; charset=utf-8")
-    //.body(&body))
-    //}
-    //}
 }
 
 /// Handler for resource 'GET /users/new'
