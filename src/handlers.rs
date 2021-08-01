@@ -3,7 +3,7 @@ use super::errors::{
     FormError::{self, FieldTooShort, MismatchPasswords},
 };
 
-use super::{auth::Auth, db::*, forms::Valid, models::NewUserSession, BaseUser, DbPool};
+use super::{auth::Auth, db::*, forms::Valid, BaseUser, DbPool};
 
 use actix_session::Session;
 use actix_web::{
@@ -38,6 +38,7 @@ impl UserSignup {
     pub fn match_passwords(self) -> Result<BaseUser, FormError> {
         if self.password == self.password_confirm {
             Ok(BaseUser {
+                id: None,
                 username: self.username,
                 password: self.password,
             })
@@ -56,8 +57,9 @@ impl Valid for Form<UserSignup> {
         Some(&self.password)
     }
 
-    fn get_response(self) -> BaseUser {
+    fn get_response(&self) -> BaseUser {
         BaseUser {
+            id: None,
             username: self.username.to_owned(),
             password: self.password.to_owned(),
         }
@@ -73,8 +75,9 @@ impl Valid for Form<UserLogin> {
         Some(&self.password)
     }
 
-    fn get_response(self) -> BaseUser {
+    fn get_response(&self) -> BaseUser {
         BaseUser {
+            id: None,
             username: self.username.to_owned(),
             password: self.password.to_owned(),
         }
@@ -224,23 +227,65 @@ pub async fn login(
     let conn = pool
         .get()
         .expect("Could not establish connection from pool.");
-
     //let auth = form.authenticate(&conn);
     // randomly generate session id
-    let session_id: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(32)
-        .map(char::from)
-        .collect();
 
-    unimplemented!()
+    // Validate form (i.e. check for empty fields, min. field length requirements, etc.)
+    let valid = form.validate();
+
+    match valid {
+        // Form is valid
+        Ok(usr) => match usr.authenticate(&conn) {
+            Ok(u) => {
+                let _session_id: String = rand::thread_rng()
+                    .sample_iter(&Alphanumeric)
+                    .take(32)
+                    .map(char::from)
+                    .collect();
+
+                Ok(HttpResponse::Ok()
+                    .content_type("text/html; charset=utf-8")
+                    .body(include_str!("../templates/login_success.html")))
+            }
+            Err(e) => {
+                let data = json!({ "error": e });
+                let body = hb.render("login", &data).unwrap();
+                Ok(HttpResponse::InternalServerError()
+                    .content_type("text/html; charset=utf-8")
+                    .body(&body))
+            }
+        },
+
+        // Form is not valid
+        Err(fe) => {
+            let data = json!({ "error": fe });
+            let body = hb.render("login", &data).unwrap();
+            Ok(HttpResponse::InternalServerError()
+                .content_type("text/html; charset=utf-8")
+                .body(&body))
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{UserLogin, UserSignup};
+    use crate::auth::Auth;
     use crate::forms::Valid;
     use actix_web::web::Form;
+
+    #[test]
+    fn user_not_exist_error() {
+        use crate::db::establish_connection;
+        let data = UserLogin {
+            username: String::from("iamnotreal"),
+            password: String::from("password123"),
+        };
+
+        let conn = establish_connection().unwrap();
+        let form: Form<UserLogin> = Form::<UserLogin>(data);
+        assert!(form.authenticate(&conn).is_err());
+    }
 
     #[test]
     fn user_login_is_valid() {

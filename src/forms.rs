@@ -15,7 +15,7 @@ where
 {
     fn get_username(&self) -> Option<&str>;
     fn get_password(&self) -> Option<&str>;
-    fn get_response(self) -> T;
+    fn get_response(&self) -> T;
 
     /// Returns `Ok` if `username` is not empty and `username.len()` is >= 4
     fn clean_username(&self) -> Result<T, FormError> {

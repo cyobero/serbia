@@ -1,6 +1,4 @@
 #[macro_use]
-extern crate diesel;
-#[macro_use]
 extern crate serde_json;
 
 use actix_session::{CookieSession, Session};
@@ -14,10 +12,6 @@ use handlebars::Handlebars;
 use std::env;
 
 pub type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
-
-pub struct AppState {
-    db: web::Data<DbPool>,
-}
 
 /// Handler for index page
 #[get("/")]
@@ -52,7 +46,7 @@ async fn main() -> std::io::Result<()> {
     // For template rendering
     let mut handlebars = Handlebars::new();
     handlebars
-        .register_templates_directory(".html", "../templates/")
+        .register_template_string("login", include_str!("../templates/login.html"))
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
 

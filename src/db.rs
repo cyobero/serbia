@@ -1,9 +1,9 @@
 //! Module for database interactions
-//
-use super::models::{NewUser, NewUserSession, User};
+
+use super::auth::Auth;
+use super::models::{NewUser, User};
 use super::schema::{sessions, users};
 use diesel::{mysql::MysqlConnection, Connection, ExpressionMethods, QueryDsl, RunQueryDsl};
-use serde::Serialize;
 use std::env;
 
 type DieselError = diesel::result::Error;
@@ -17,10 +17,7 @@ pub fn get_all_users(conn: &MysqlConnection) -> Result<Vec<User>, DieselError> {
     let items = users::table.get_results(conn)?;
     Ok(items)
 }
-
-/// Create new user record in db.
-///
-/// Example:
+/// Create new user record in db.  Example:
 ///     let username = String::from("testuser2");
 ///     let password = String::from("password123");
 ///     let usr = create_user(&conn, NewUser { username, password });
@@ -91,9 +88,9 @@ pub fn remove_user_by_username(
 ///     let token = String::from("test-token");
 ///     let new_session = create_user_session(&conn, user_id_:42, session_token: token);
 ///     assert_eq!(new_session, Ok(1));
-pub fn create_user_session(
+pub fn create_user_session<U: Auth>(
     conn: &MysqlConnection,
-    session: &NewUserSession,
+    session: &U,
 ) -> Result<usize, DieselError> {
     let res = diesel::insert_into(sessions::table)
         .values(session)

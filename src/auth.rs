@@ -1,10 +1,10 @@
 use super::db::{establish_connection, get_user_by_username};
-use super::errors::{AuthError, FormError};
+use super::errors::AuthError;
 use super::handlers::{UserLogin, UserResponse, UserSignup};
 use super::BaseUser;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use diesel::{Connection, MysqlConnection};
-use serde::Serialize;
+use diesel::MysqlConnection;
+
 pub trait Auth<C = MysqlConnection> {
     /// Getter method for `username`
     fn get_username(&self) -> Option<&String>;
@@ -27,6 +27,7 @@ pub trait Auth<C = MysqlConnection> {
     fn verify_user(&self, conn: &MysqlConnection) -> Result<BaseUser, AuthError> {
         get_user_by_username(conn, self.get_username().unwrap())
             .map(|usr| BaseUser {
+                id: Some(usr.id),
                 username: usr.username,
                 password: usr.password,
             })
@@ -82,7 +83,6 @@ mod tests {
 
     #[test]
     fn user_login_authenticated() {
-        use crate::db::establish_connection;
         let conn = establish_connection().unwrap();
         let usr = UserLogin {
             username: String::from("cyobero"),

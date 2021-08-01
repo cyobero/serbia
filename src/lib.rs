@@ -1,8 +1,8 @@
 #[macro_use]
-extern crate diesel;
+extern crate serde_json;
 
 #[macro_use]
-extern crate serde_json;
+extern crate diesel;
 
 #[macro_use]
 extern crate failure;
@@ -18,8 +18,6 @@ pub mod schema;
 use diesel::mysql::MysqlConnection;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
-use errors::FormError;
-use models::User as UserModel;
 use serde::{Deserialize, Serialize};
 
 pub type DbPool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
@@ -37,6 +35,7 @@ pub struct NewUserInput {
 
 #[derive(Serialize, Clone, Debug)]
 pub struct BaseUser {
+    id: Option<i32>,
     username: String,
     password: String,
 }
@@ -50,6 +49,7 @@ impl BaseUser {
 impl Default for BaseUser {
     fn default() -> BaseUser {
         BaseUser {
+            id: None,
             username: String::new(),
             password: String::new(),
         }
