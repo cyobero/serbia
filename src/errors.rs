@@ -1,3 +1,4 @@
+use actix_web::error::ResponseError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Fail, Debug, Serialize, Deserialize)]
@@ -18,3 +19,5 @@ pub enum AuthError {
     UserNotFound,
     UserAlreadyExists,
 }
+
+impl ResponseError for FormError {}

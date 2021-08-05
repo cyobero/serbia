@@ -14,6 +14,7 @@ pub mod forms;
 pub mod handlers;
 pub mod models;
 pub mod schema;
+pub mod users;
 
 use diesel::mysql::MysqlConnection;
 use diesel::prelude::*;
@@ -31,31 +32,4 @@ pub struct NewUserInput {
     pub username: String,
     pub password: String,
     pub password_confirm: String,
-}
-
-#[derive(Serialize, Clone, Debug)]
-pub struct BaseUser {
-    id: Option<i32>,
-    username: String,
-    password: String,
-}
-
-impl BaseUser {
-    pub fn new() -> Self {
-        BaseUser::default()
-    }
-
-    pub fn get_id(&self) -> i32 {
-        self.id.unwrap()
-    }
-}
-
-impl Default for BaseUser {
-    fn default() -> BaseUser {
-        BaseUser {
-            id: None,
-            username: String::new(),
-            password: String::new(),
-        }
-    }
 }

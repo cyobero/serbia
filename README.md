@@ -38,3 +38,5 @@ TODO:
 - Impl `User` for `models::NewUser` 
 - ~~Unit test `Auth` trait methods~~
 - ~~Add `conn` as parameter to `Auth` methods~~
+- Create new module `users`
+- Implement `Auth` trait for `UserrSignup`

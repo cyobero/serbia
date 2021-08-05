@@ -1,101 +1,20 @@
 use super::auth::Auth;
-use super::errors::FormError;
-use super::forms::Valid;
-use super::models::NewUserSession;
-use super::{db::*, BaseUser, DbPool};
+use super::forms::{UserLogin, UserSignup, Valid};
+use super::users::{BaseUser, UserResponse};
+use super::{db::*, DbPool};
 
 use actix_session::Session;
 use actix_web::{
     self, get,
     http::StatusCode,
     post,
-    web::{self, Form},
+    web::{self, Form, HttpRequest},
     HttpResponse,
 };
 
-use diesel::mysql::MysqlConnection;
-use diesel::sql_types::Varchar;
 use diesel::{sql_query, sql_types::*, RunQueryDsl};
 use handlebars::Handlebars;
-use rand::distributions::Alphanumeric;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct UserSignup {
-    pub username: String,
-    pub password: String,
-    pub password_confirm: String,
-}
-
-impl UserSignup {
-    /// Verify that confirmation password matches input password.  Example:
-    ///     let usr = UserSignup {
-    ///         username: "cyobero"
-    ///     }
-    pub fn match_passwords(self) -> Result<BaseUser, FormError> {
-        if self.password == self.password_confirm {
-            Ok(BaseUser {
-                id: None,
-                username: self.username,
-                password: self.password,
-            })
-        } else {
-            Err(FormError::MismatchPasswords)
-        }
-    }
-}
-
-impl Valid<UserSignup> for Form<UserSignup> {
-    fn get_username(&self) -> Option<&str> {
-        Some(&self.username)
-    }
-
-    fn get_password(&self) -> Option<&str> {
-        Some(&self.password)
-    }
-
-    fn get_response(&self) -> &UserSignup {
-        &self.0
-    }
-}
-
-impl Valid<UserLogin> for Form<UserLogin> {
-    fn get_username(&self) -> Option<&str> {
-        Some(&self.username)
-    }
-
-    fn get_password(&self) -> Option<&str> {
-        Some(&self.password)
-    }
-
-    fn get_response(&self) -> &UserLogin {
-        &self.0
-    }
-}
-/// Response for `GET /usrs/{id}`
-#[derive(Debug, Serialize, Deserialize, QueryableByName, Clone)]
-#[table_name = "users"]
-pub struct UserResponse {
-    #[sql_type = "Integer"]
-    id: i32,
-
-    #[sql_type = "Varchar"]
-    username: String,
-
-    #[sql_type = "Timestamp"]
-    created_at: chrono::NaiveDateTime,
-}
-
-impl Auth for UserResponse {
-    fn get_username(&self) -> Option<&String> {
-        Some(&self.username)
-    }
-
-    fn get_password(&self) -> Option<&String> {
-        None
-    }
-}
 
 /// Handler for resource 'GET /users/{id}
 ///
@@ -118,9 +37,9 @@ pub async fn retrieve_user_by_id(
             Ok(HttpResponse::build(StatusCode::OK)
                 .content_type("application/json")
                 .json(UserResponse {
-                    id: usr.id,
-                    username: usr.username,
-                    created_at: usr.created_at,
+                    id: usr.get_id().to_owned(),
+                    username: usr.get_username().to_owned(),
+                    created_at: usr.get_createted_at().to_owned(),
                 }))
         })
         .map_err(|e| {
@@ -136,13 +55,37 @@ pub async fn signup(
     hb: web::Data<Handlebars<'_>>,
     pool: web::Data<DbPool>,
     form: web::Form<UserSignup>,
-    sess: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     let conn = pool
         .get()
         .expect("Could not establish connection from pool.");
 
-    unimplemented!()
+    let valid = form.validate();
+
+    match valid {
+        Ok(usr) => web::block(move || usr.authenticate(&conn))
+            .await
+            .map(|_| {
+                Ok(HttpResponse::Ok()
+                    .content_type("text/html; charset=utf-8")
+                    .body(include_str!("../templates/signup_success.html")))
+            })
+            .map_err(|e| {
+                let data = json!({ "error": format!("{}", e) });
+                let body = hb.render("signup", &data).unwrap();
+                HttpResponse::InternalServerError()
+                    .content_type("text/html; charset=utf-8")
+                    .body(&body)
+            })?,
+
+        Err(e) => {
+            let data = json!({ " error": e });
+            let body = hb.render("signup", &data).unwrap();
+            Ok(HttpResponse::InternalServerError()
+                .content_type("text/html; charset=utf-8")
+                .body(&body))
+        }
+    }
 }
 
 /// Handler for resource 'GET /users/new'
@@ -154,13 +97,6 @@ pub async fn signup_form() -> Result<HttpResponse, actix_web::Error> {
         .content_type("text/html; charset=utf-8")
         .body(include_str!("../templates/signup.html")))
 }
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct UserLogin {
-    pub username: String,
-    pub password: String,
-}
-
 /// Handler for `GET /login`
 #[get("/login")]
 pub async fn login_form() -> Result<HttpResponse, actix_web::Error> {
@@ -175,56 +111,33 @@ pub async fn login(
     hb: web::Data<Handlebars<'_>>,
     form: web::Form<UserLogin>,
     pool: web::Data<DbPool>,
+    session: Session,
 ) -> Result<HttpResponse, actix_web::Error> {
     let conn = pool
         .get()
         .expect("Could not establish connection from pool.");
-    //let auth = form.authenticate(&conn);
-    // randomly generate session id
 
-    // Validate form (i.e. check for empty fields, min. field length requirements, etc.)
     let valid = form.validate();
 
     match valid {
-        // Form is valid
-        Ok(usr) => match usr.authenticate(&conn) {
-            Ok(u) => {
-                let session_id: String = rand::thread_rng()
-                    .sample_iter(&Alphanumeric)
-                    .take(32)
-                    .map(char::from)
-                    .collect();
+        Ok(usr) => web::block(move || usr.authenticate(&conn))
+            .await
+            .map(|u| {
+                session.set("user", &u)?;
 
-                let sess = NewUserSession::new(session_id, u.get_id());
-
-                web::block(move || create_user_session(&conn, &sess))
-                    .await
-                    .map(|_| {
-                        Ok(HttpResponse::Ok()
-                            .content_type("text/html; charset=utf-8")
-                            .body(include_str!("../templates/login_success.html")))
-                    })
-                    .map_err(|_| {
-                        let data = json!({ "error": "whoops: blocking error" });
-                        let body = hb.render("login", &data).unwrap();
-                        HttpResponse::InternalServerError()
-                            .content_type("text/html; charset=utf-8")
-                            .body(&body)
-                    })
-                    .unwrap()
-            }
-            Err(e) => {
-                let data = json!({ "error": e });
-                let body = hb.render("login", &data).unwrap();
-                Ok(HttpResponse::InternalServerError()
+                Ok(HttpResponse::Ok()
                     .content_type("text/html; charset=utf-8")
-                    .body(&body))
-            }
-        },
-
-        // Form is not valid
-        Err(fe) => {
-            let data = json!({ "error": fe });
+                    .body(include_str!("../templates/login_success.html")))
+            })
+            .map_err(|e| {
+                let data = json!({ "error": format!("{}", e) });
+                let body = hb.render("login", &data).unwrap();
+                HttpResponse::InternalServerError()
+                    .content_type("text/html; charset=utf-8")
+                    .body(&body)
+            })?,
+        Err(e) => {
+            let data = json!({ "error": e });
             let body = hb.render("login", &data).unwrap();
             Ok(HttpResponse::InternalServerError()
                 .content_type("text/html; charset=utf-8")
@@ -235,9 +148,8 @@ pub async fn login(
 
 #[cfg(test)]
 mod tests {
-    use super::{UserLogin, UserSignup};
     use crate::auth::Auth;
-    use crate::forms::Valid;
+    use crate::forms::{UserLogin, Valid};
     use actix_web::web::Form;
 
     #[test]

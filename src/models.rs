@@ -1,3 +1,4 @@
+use super::auth::Auth;
 use super::schema::*;
 use chrono::{NaiveDateTime, Utc};
 use diesel::{sql_types::*, Expression, Insertable};
@@ -7,12 +8,44 @@ use serde::Serialize;
 pub struct User {
     #[sql_type = "Integer"]
     pub id: i32,
+
     #[sql_type = "Varchar"]
     pub username: String,
+
     #[sql_type = "Varchar"]
     pub password: String,
+
     #[sql_type = "Timestamp"]
     pub created_at: NaiveDateTime,
+}
+
+impl User {
+    pub fn new() -> Self {
+        User {
+            id: -1,
+            username: String::with_capacity(255),
+            password: String::with_capacity(255),
+            created_at: Utc::now().naive_utc(),
+        }
+    }
+
+    pub fn get_id(&self) -> &i32 {
+        &self.id
+    }
+
+    pub fn get_createted_at(&self) -> &chrono::NaiveDateTime {
+        &self.created_at
+    }
+}
+
+impl Auth for User {
+    fn get_username(&self) -> &String {
+        &self.username
+    }
+
+    fn get_password(&self) -> &String {
+        &self.password
+    }
 }
 
 #[derive(Debug, Insertable)]
